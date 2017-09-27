@@ -14,6 +14,9 @@ import com.base.basepedo.utils.CountDownTimer;
 import com.litesuits.orm.LiteOrm;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -74,6 +77,7 @@ public class StepInAcceleration extends StepMode {
     private long duration = 3500;
     private TimeCount time;
     private LiteOrm liteOrm;
+    private int step = 0;
 
     public StepInAcceleration(Context context, StepCallBack stepCallBack) {
         super(context, stepCallBack);
@@ -191,7 +195,8 @@ public class StepInAcceleration extends StepMode {
                     break;
                 case Sensor.TYPE_STEP_DETECTOR:
                     synchronized (this) {
-                        save();
+                        // save();
+                        step++;
                     }
                     break;
                 case Sensor.TYPE_GYROSCOPE:
@@ -234,32 +239,35 @@ public class StepInAcceleration extends StepMode {
         }
     }
 
+    private StringBuilder accelerationStr = new StringBuilder();
 
-    public void save() {
-        StringBuilder sb = new StringBuilder();
+    public void saveAcceleration() {
+        accelerationStr.append("------------------------" + step + "------------------------\n");
         for (Acceleration item : accelerationList) {
-            sb.append(item.toString());
+            accelerationStr.append(item.toString());
+            accelerationStr.append("\n");
         }
 
+        File fileDir = new File(context.getFilesDir(), "AwesomeFile");
+        FileOutputStream fos1 = null;
 
-        File file = context.getFilesDir();
-        Log.d("StepInAcceleration", file.getAbsolutePath());
-        // FileOutputStream fos = null;
-        // try {
-        //     fos = new FileOutputStream(file);
-        //     fos.write(sb.toString().getBytes());
-        // } catch (FileNotFoundException e) {
-        //     e.printStackTrace();
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // } finally {
-        //     accelerationList.clear();
-        //     try {
-        //         fos.close();
-        //     } catch (IOException e) {
-        //         e.printStackTrace();
-        //     }
-        // }
+        try {
+            fos1 = new FileOutputStream(fileDir);
+            fos1.write(accelerationStr.toString().getBytes());
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fos1 != null) {
+                try {
+                    fos1.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     class TimeCounter extends CountDownTimer {
@@ -272,10 +280,8 @@ public class StepInAcceleration extends StepMode {
         public void onTick(long millisUntilFinished) {
             Log.d("TimeCounter", "millisUntilFinished:" + millisUntilFinished);
             // acceleration = new Acceleration();
-            // acceleration.setX(x);
-            // acceleration.setY(y);
-            // acceleration.setZ(z);
             // liteOrm.insert(acceleration);
+            saveAcceleration();
         }
 
         @Override

@@ -1,19 +1,27 @@
 package com.base.basepedo.ui;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.base.basepedo.R;
 import com.base.basepedo.config.Constant;
@@ -118,7 +126,65 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         init();
         Log.d("MainActivity", "...");
         startServiceForStrategy();
+        // checkExternalPermission();
+    }
 
+    public static final int REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE = 0x01;
+
+    private void checkExternalPermission() {
+        boolean b = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        Log.d("MainActivity", "b:" + b);
+
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            //RUNTIME PERMISSION Android M
+            Log.d("MainActivity", "MEDIA_MOUNTED");
+            if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                // storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "myPhoto");
+            } else {
+                Log.d("MainActivity", "no request");
+                requestPermission(this);
+            }
+        }
+    }
+
+    private static void requestPermission(final Context context){
+        if(ActivityCompat.shouldShowRequestPermissionRationale((Activity)context,Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            new AlertDialog.Builder(context)
+                    .setMessage(context.getResources().getString(R.string.permission_storage))
+                    .setPositiveButton("好", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ActivityCompat.requestPermissions((Activity) context,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE);
+                        }
+                    }).show();
+        }else {
+            // permission has not been granted yet. Request it directly.
+            ActivityCompat.requestPermissions((Activity)context,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE: {
+                if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this,
+                            getResources().getString(R.string.permission_storage_success),
+                            Toast.LENGTH_SHORT).show();
+
+                } else {
+                    Toast.makeText(this,
+                            getResources().getString(R.string.permission_storage_failure),
+                            Toast.LENGTH_SHORT).show();
+                    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                }
+                return;
+            }
+        }
     }
 
     private void startServiceForStrategy() {
@@ -164,7 +230,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
     private void setupService(boolean flag) {
         Intent intent = new Intent(this, StepService.class);
         boolean b = bindService(intent, conn, Context.BIND_AUTO_CREATE);
-        Log.d("MainActivity", "b:" + b);
+        // Log.d("MainActivity", "b:" + b);
         if (flag) {
             startService(intent);
         }
