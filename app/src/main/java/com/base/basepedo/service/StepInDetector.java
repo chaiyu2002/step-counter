@@ -19,13 +19,10 @@ public class StepInDetector extends StepMode {
     private int increment = 0;
     //0-TYPE_STEP_DETECTOR 1-TYPE_STEP_COUNTER
     private int sensorMode = 0;
-    private StepInAcceleration.MyHandler myHandler;
 
 
     public StepInDetector(Context context, StepCallBack stepCallBack) {
         super(context, stepCallBack);
-        myHandler = new StepInAcceleration.MyHandler();
-
     }
 
     @Override
@@ -42,9 +39,7 @@ public class StepInDetector extends StepMode {
         //     StepMode.CURRENT_SETP = liveStep;
         // }
 
-        myHandler.sendEmptyMessage(Constant.MSG_SYNCHRONIZED);
         stepCallBack.Step(StepMode.CURRENT_SETP);
-
     }
 
     @Override
