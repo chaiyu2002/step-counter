@@ -284,10 +284,9 @@ public class StepInAcceleration extends StepMode {
 
     public void saveAcceleration(long timestamp, int step) {
         // accelerationStr = new StringBuilder();
-        accelerationStr.append("第" + step + "步 \n");
         String detectorTime = sdf.format((new Date()).getTime()
                 + (timestamp - System.nanoTime()) / 1000000L);
-        accelerationStr.append(detectorTime + ":\n");
+        accelerationStr.append(detectorTime + ": StepDetector  第" + step + "步 \n");
 
         for (int i = 0; i < accelerationList.size(); i++) {
             if (i < accelerationList.size() && i < gyroscopeList.size()) {
