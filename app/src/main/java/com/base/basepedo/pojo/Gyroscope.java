@@ -14,7 +14,7 @@ import java.io.Serializable;
  */
 
 @Table("gyroscope")
-public class Gyroscope implements Serializable{
+public class Gyroscope implements Serializable {
 
     @PrimaryKey(AssignType.AUTO_INCREMENT)
     private int id;
@@ -27,16 +27,20 @@ public class Gyroscope implements Serializable{
     private float axisZ;
     @Column("average")
     private float average;
+    @Column("timestamp")
+    private long timestamp;
 
     @Override
     public String toString() {
-        return "Gyroscope{" +
-                "id=" + id +
-                ", axisX=" + axisX +
-                ", axisY=" + axisY +
-                ", axisZ=" + axisZ +
-                ", average=" + average +
-                '}';
+        return "Gyroscope     " + "average=" + average;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public int getId() {

@@ -29,4 +29,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.0'
     compile files('libs/lite-orm-1.7.0.jar')
     compile project(path: ':LibMarsdaemon')
+    compile 'joda-time:joda-time:2.9.9'
 }

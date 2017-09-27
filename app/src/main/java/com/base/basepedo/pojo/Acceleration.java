@@ -28,16 +28,20 @@ public class Acceleration implements Serializable{
     private float z;
     @Column("average")
     private float average;
+    @Column("timestamp")
+    private long timestamp;
 
     @Override
     public String toString() {
-        return "Acceleration{" +
-                "id=" + id +
-                ", x=" + x +
-                ", y=" + y +
-                ", z=" + z +
-                ", average=" + average +
-                '}';
+        return "Acceleration  " + "average=" + average;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public float getAverage() {

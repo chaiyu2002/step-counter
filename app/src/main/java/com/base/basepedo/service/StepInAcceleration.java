@@ -17,7 +17,9 @@ import com.litesuits.orm.LiteOrm;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -199,6 +201,7 @@ public class StepInAcceleration extends StepMode {
                     acceleration.setY((float) linear_acceleration[1]);
                     acceleration.setZ((float) linear_acceleration[2]);
                     acceleration.setAverage(average);
+                    acceleration.setTimestamp(event.timestamp);
                     accelerationList.add(acceleration);
                     // liteOrm.insert(acceleration);
                     break;
@@ -214,7 +217,7 @@ public class StepInAcceleration extends StepMode {
                 case Sensor.TYPE_STEP_DETECTOR:
                     step++;
                     // if (i % 5 == 0) {
-                    saveAcceleration();
+                    saveAcceleration(event.timestamp, step);
                     // saveGyroscope();
                     // }
                     break;
@@ -251,6 +254,7 @@ public class StepInAcceleration extends StepMode {
                         gyroscope.setAxisY(deltaRotationVector[1]);
                         gyroscope.setAxisZ(deltaRotationVector[2]);
                         gyroscope.setAverage(deltaRotationVector[3]);
+                        gyroscope.setTimestamp(event.timestamp);
                         gyroscopeList.add(gyroscope);
                     }
                     timestamp = event.timestamp;
@@ -276,18 +280,29 @@ public class StepInAcceleration extends StepMode {
     // }
 
     private StringBuilder accelerationStr = new StringBuilder();
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日HH点mm分ss秒SSS毫秒");
 
-
-    public void saveAcceleration() {
+    public void saveAcceleration(long timestamp, int step) {
         // accelerationStr = new StringBuilder();
-        accelerationStr.append("---------------" + step + "---------------\n");
+        accelerationStr.append("第" + step + "步 \n");
+        String detectorTime = sdf.format((new Date()).getTime()
+                + (timestamp - System.nanoTime()) / 1000000L);
+        accelerationStr.append(detectorTime + ":\n");
 
         for (int i = 0; i < accelerationList.size(); i++) {
             if (i < accelerationList.size() && i < gyroscopeList.size()) {
-                accelerationStr.append("————>");
-                accelerationStr.append(accelerationList.get(i).toString());
-                accelerationStr.append(gyroscopeList.get(i).toString());
-                accelerationStr.append("\n");
+
+                String accelerationTime = sdf.format((new Date()).getTime()
+                        + (accelerationList.get(i).getTimestamp() - System.nanoTime()) / 1000000L);
+                String gyroscopeTime = sdf.format((new Date()).getTime()
+                        + (gyroscopeList.get(i).getTimestamp() - System.nanoTime()) / 1000000L);
+
+
+                accelerationStr.append(accelerationTime + ": ");
+                accelerationStr.append(accelerationList.get(i).toString() + "\n");
+                accelerationStr.append(gyroscopeTime + ": ");
+                accelerationStr.append(gyroscopeList.get(i).toString() + "\n");
+                accelerationStr.append("---------------\n");
             }
         }
         // for (Acceleration item : accelerationList) {
@@ -297,6 +312,7 @@ public class StepInAcceleration extends StepMode {
 
         FileUtil.writeToFileDir(accelerationFile, accelerationStr.toString());
         accelerationList.clear();
+        gyroscopeList.clear();
     }
 
     class TimeCounter extends CountDownTimer {
