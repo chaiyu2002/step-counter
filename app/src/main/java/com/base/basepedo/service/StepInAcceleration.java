@@ -94,7 +94,10 @@ public class StepInAcceleration extends StepMode {
         acceleration = new Acceleration();
         gravity = new Gravity();
         gyroscope = new Gyroscope();
-        accelerationFile = new File(context.getFilesDir(), "accelerationFile");
+        // accelerationFile = new File(context.getFilesDir(), "accelerationFile");
+        accelerationFile = new File(context.getExternalFilesDir(null), "accelerationFile");
+        Log.d("StepInAcceleration", "context.getExternalFilesDir(null):" + context.getExternalFilesDir(null));
+
         gyroscopeFile = new File(context.getFilesDir(), "gyroscopeFile");
     }
 
@@ -109,6 +112,7 @@ public class StepInAcceleration extends StepMode {
         Sensor sensor = sensorManager
                 .getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         // sensorManager.unregisterListener(stepDetector);
+
         isAvailable = sensorManager.registerListener(this, sensor,
                 SensorManager.SENSOR_DELAY_UI);
         if (isAvailable) {
