@@ -53,7 +53,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     private TimeCount time;
     //当天的日期
     private String CURRENTDATE = "";
-    private StepInAcceleration stepInAcceleration;
+    private static StepInAcceleration stepInAcceleration;
     // private StepInGyroScope stepInGyroScope;
     // private StepInPedometer stepInPedometer;
     private static Acceleration acceleration;
@@ -70,6 +70,9 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
                         Messenger messenger = msg.replyTo;
                         Message replyMsg = Message.obtain(null, Constant.MSG_FROM_SERVER);
                         Bundle bundle = new Bundle();
+                        acceleration = stepInAcceleration.acceleration;
+                        deltaRotationVector = stepInAcceleration.deltaRotationVector;
+                        gravity = stepInAcceleration.gravity;
                         bundle.putInt("step", StepMode.CURRENT_SETP);
                         bundle.putSerializable("acceleration", acceleration);
                         bundle.putSerializable("gyroscope", deltaRotationVector);
@@ -102,13 +105,11 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
         startStep();
         startTimeCount();
 
-        TimeCounter counter = new TimeCounter(100000, 1000);
-        counter.start();
+        // TimeCounter counter = new TimeCounter(100000, 1000);
+        // counter.start();
 
         liteOrm = LiteOrm.newCascadeInstance(this, "acceleration.db");
         liteOrm.setDebugged(false);
-        // gyroscopeOrm = LiteOrm.newCascadeInstance(this, "gyroscope.db");
-        // gyroscopeOrm.setDebugged(false);
     }
 
     static int i = 0;
@@ -123,15 +124,17 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
         public void onTick(long millisUntilFinished) {
             Log.d("TimeCounter", "seconds remaining:" + millisUntilFinished);
             Log.d("TimeCounter", "i++:" + i++);
-            acceleration = stepInAcceleration.acceleration;
-            Acceleration accelerationTemp = new Acceleration();
-            accelerationTemp.setX(acceleration.getX());
-            accelerationTemp.setY(acceleration.getY());
-            accelerationTemp.setZ(acceleration.getZ());
-            liteOrm.insert(accelerationTemp);
+            // acceleration = stepInAcceleration.acceleration;
+            // Acceleration accelerationTemp = new Acceleration();
+            // accelerationTemp.setX(acceleration.getX());
+            // accelerationTemp.setY(acceleration.getY());
+            // accelerationTemp.setZ(acceleration.getZ());
+            // liteOrm.insert(accelerationTemp);
+            //
+            // acceleration = stepInAcceleration.acceleration;
+            // deltaRotationVector = stepInAcceleration.deltaRotationVector;
+            // gravity = stepInAcceleration.gravity;
 
-            deltaRotationVector = stepInAcceleration.deltaRotationVector;
-            gravity = stepInAcceleration.gravity;
             // Gyroscope gyroscope = new Gyroscope();
             // gyroscope.setAxisX(deltaRotationVector[0]);
             // gyroscope.setAxisY(deltaRotationVector[1]);
