@@ -10,13 +10,13 @@ import com.base.basepedo.base.StepMode;
 import com.base.basepedo.callback.StepCallBack;
 import com.base.basepedo.pojo.Acceleration;
 import com.base.basepedo.pojo.Gravity;
+import com.base.basepedo.pojo.Gyroscope;
 import com.base.basepedo.utils.CountDownTimer;
+import com.base.basepedo.utils.FileUtil;
 import com.litesuits.orm.LiteOrm;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -77,17 +77,25 @@ public class StepInAcceleration extends StepMode {
     private long duration = 3500;
     private TimeCount time;
     private LiteOrm liteOrm;
+
     private int step = 0;
+
+    private File accelerationFile;
+    private File gyroscopeFile;
+    FileOutputStream fos1 = null;
 
     public StepInAcceleration(Context context, StepCallBack stepCallBack) {
         super(context, stepCallBack);
         this.context = context;
         liteOrm = LiteOrm.newCascadeInstance(context, "acceleration.db");
         liteOrm.setDebugged(false);
-        TimeCounter counter = new TimeCounter(10000, 1000);
+        TimeCounter counter = new TimeCounter(100000, 250);
         counter.start();
         acceleration = new Acceleration();
         gravity = new Gravity();
+        gyroscope = new Gyroscope();
+        accelerationFile = new File(context.getFilesDir(), "accelerationFile");
+        gyroscopeFile = new File(context.getFilesDir(), "gyroscopeFile");
     }
 
     @Override
@@ -146,8 +154,10 @@ public class StepInAcceleration extends StepMode {
     }
 
     public Acceleration acceleration = null;
+    public Gyroscope gyroscope = null;
     public Gravity gravity = null;
     public static List<Acceleration> accelerationList = new ArrayList<>();
+    public static List<Gyroscope> gyroscopeList = new ArrayList<>();
 
     private double gravitys[] = new double[3];
     private double linear_acceleration[] = new double[3];
@@ -156,13 +166,16 @@ public class StepInAcceleration extends StepMode {
     public final float[] deltaRotationVector = new float[4];
     private float timestamp;
 
+    transient int i = 0;
+
     public void onSensorChanged(SensorEvent event) {
 
+        i++;
         Sensor sensor = event.sensor;
         synchronized (this) {
             switch (sensor.getType()) {
                 case Sensor.TYPE_ACCELEROMETER:
-                    calc_step(event);
+                    float average = calc_step(event);
                     // Log.d("StepInAcceleration", "event.values[0]:" + event.values[0]);
                     // Log.d("StepInAcceleration", "event.values[1]:" + event.values[1]);
                     // Log.d("StepInAcceleration", "event.values[2]:" + event.values[2]);
@@ -181,6 +194,7 @@ public class StepInAcceleration extends StepMode {
                     acceleration.setX((float) linear_acceleration[0]);
                     acceleration.setY((float) linear_acceleration[1]);
                     acceleration.setZ((float) linear_acceleration[2]);
+                    acceleration.setAverage(average);
                     accelerationList.add(acceleration);
                     // liteOrm.insert(acceleration);
                     break;
@@ -194,10 +208,11 @@ public class StepInAcceleration extends StepMode {
                     gravity.setZ(event.values[2]);
                     break;
                 case Sensor.TYPE_STEP_DETECTOR:
-                    synchronized (this) {
-                        // save();
-                        step++;
-                    }
+                    step++;
+                    // if (i % 5 == 0) {
+                    saveAcceleration();
+                    // saveGyroscope();
+                    // }
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                     // This time step's delta rotation to be multiplied by the current rotation
@@ -210,7 +225,7 @@ public class StepInAcceleration extends StepMode {
                         float axisZ = event.values[2];
 
                         // Calculate the angular speed of the sample
-                        float omegaMagnitude = (float) Math.sqrt(axisX*axisX + axisY*axisY + axisZ*axisZ);
+                        float omegaMagnitude = (float) Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
 
                         // Normalize the rotation vector if it's big enough to get the axis
                         // TODO
@@ -227,6 +242,12 @@ public class StepInAcceleration extends StepMode {
                         deltaRotationVector[1] = sinThetaOverTwo * axisY;
                         deltaRotationVector[2] = sinThetaOverTwo * axisZ;
                         deltaRotationVector[3] = cosThetaOverTwo;
+                        gyroscope = new Gyroscope();
+                        gyroscope.setAxisX(deltaRotationVector[0]);
+                        gyroscope.setAxisY(deltaRotationVector[1]);
+                        gyroscope.setAxisZ(deltaRotationVector[2]);
+                        gyroscope.setAverage(deltaRotationVector[3]);
+                        gyroscopeList.add(gyroscope);
                     }
                     timestamp = event.timestamp;
                     float[] deltaRotationMatrix = new float[9];
@@ -239,35 +260,39 @@ public class StepInAcceleration extends StepMode {
         }
     }
 
+    private StringBuilder gyroscopeStr = new StringBuilder();
+
+    // private void saveGyroscope() {
+    //     gyroscopeStr.append("---------------" + step + "---------------\n");
+    //     for (Gyroscope item : gyroscopeList) {
+    //         gyroscopeStr.append(item.toString());
+    //         gyroscopeStr.append("\n");
+    //     }
+    //     FileUtil.writeToFileDir(gyroscopeFile, gyroscopeStr.toString());
+    // }
+
     private StringBuilder accelerationStr = new StringBuilder();
 
+
     public void saveAcceleration() {
-        accelerationStr.append("------------------------" + step + "------------------------\n");
-        for (Acceleration item : accelerationList) {
-            accelerationStr.append(item.toString());
-            accelerationStr.append("\n");
-        }
+        // accelerationStr = new StringBuilder();
+        accelerationStr.append("---------------" + step + "---------------\n");
 
-        File fileDir = new File(context.getFilesDir(), "AwesomeFile");
-        FileOutputStream fos1 = null;
-
-        try {
-            fos1 = new FileOutputStream(fileDir);
-            fos1.write(accelerationStr.toString().getBytes());
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (fos1 != null) {
-                try {
-                    fos1.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        for (int i = 0; i < accelerationList.size(); i++) {
+            if (i < accelerationList.size() && i < gyroscopeList.size()) {
+                accelerationStr.append("————>");
+                accelerationStr.append(accelerationList.get(i).toString());
+                accelerationStr.append(gyroscopeList.get(i).toString());
+                accelerationStr.append("\n");
             }
         }
+        // for (Acceleration item : accelerationList) {
+        //     accelerationStr.append(item.toString());
+        //     accelerationStr.append("\n");
+        // }
+
+        FileUtil.writeToFileDir(accelerationFile, accelerationStr.toString());
+        accelerationList.clear();
     }
 
     class TimeCounter extends CountDownTimer {
@@ -281,7 +306,7 @@ public class StepInAcceleration extends StepMode {
             Log.d("TimeCounter", "millisUntilFinished:" + millisUntilFinished);
             // acceleration = new Acceleration();
             // liteOrm.insert(acceleration);
-            saveAcceleration();
+            // saveAcceleration();
         }
 
         @Override
@@ -290,10 +315,11 @@ public class StepInAcceleration extends StepMode {
         }
     }
 
-    synchronized private void calc_step(SensorEvent event) {
+    synchronized private float calc_step(SensorEvent event) {
         average = (float) Math.sqrt(Math.pow(event.values[0], 2)
                 + Math.pow(event.values[1], 2) + Math.pow(event.values[2], 2));
         detectorNewStep(average);
+        return average;
     }
 
     /*

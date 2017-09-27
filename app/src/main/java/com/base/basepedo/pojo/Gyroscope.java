@@ -25,25 +25,26 @@ public class Gyroscope implements Serializable{
     private float axisY;
     @Column("axisZ")
     private float axisZ;
-    @Column("axisA")
-    private float axisA;
+    @Column("average")
+    private float average;
 
     @Override
     public String toString() {
         return "Gyroscope{" +
-                "axisX=" + axisX +
+                "id=" + id +
+                ", axisX=" + axisX +
                 ", axisY=" + axisY +
                 ", axisZ=" + axisZ +
-                ", axisA=" + axisA +
+                ", average=" + average +
                 '}';
     }
 
-    public float getAxisA() {
-        return axisA;
+    public int getId() {
+        return id;
     }
 
-    public void setAxisA(float axisA) {
-        this.axisA = axisA;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public float getAxisX() {
@@ -70,11 +71,11 @@ public class Gyroscope implements Serializable{
         this.axisZ = axisZ;
     }
 
-    public int getId() {
-        return id;
+    public float getAverage() {
+        return average;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setAverage(float average) {
+        this.average = average;
     }
 }
