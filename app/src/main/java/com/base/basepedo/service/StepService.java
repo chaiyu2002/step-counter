@@ -26,8 +26,7 @@ import com.base.basepedo.base.StepMode;
 import com.base.basepedo.callback.StepCallBack;
 import com.base.basepedo.config.Constant;
 import com.base.basepedo.pojo.Acceleration;
-import com.base.basepedo.pojo.Gyroscope;
-import com.base.basepedo.pojo.StepCounter;
+import com.base.basepedo.pojo.Gravity;
 import com.base.basepedo.pojo.StepData;
 import com.base.basepedo.ui.MainActivity;
 import com.base.basepedo.utils.CountDownTimer;
@@ -55,9 +54,10 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     //当天的日期
     private String CURRENTDATE = "";
     private StepInAcceleration stepInAcceleration;
-    private StepInGyroScope stepInGyroScope;
-    private StepInPedometer stepInPedometer;
+    // private StepInGyroScope stepInGyroScope;
+    // private StepInPedometer stepInPedometer;
     private static Acceleration acceleration;
+    private static Gravity gravity;
     private static float[] deltaRotationVector;
 
     private static class MessenerHandler extends Handler {
@@ -73,6 +73,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
                         bundle.putInt("step", StepMode.CURRENT_SETP);
                         bundle.putSerializable("acceleration", acceleration);
                         bundle.putSerializable("gyroscope", deltaRotationVector);
+                        bundle.putSerializable("gravity", gravity);
                         replyMsg.setData(bundle);
                         // replyMsg.obj = acceleration;
                         messenger.send(replyMsg);
@@ -91,25 +92,27 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
 
 
     private LiteOrm liteOrm;
+
     // private LiteOrm gyroscopeOrm;
-        @Override
-        public void onCreate() {
-            super.onCreate();
-            Log.v(TAG, "onCreate");
-            initBroadcastReceiver();
-            startStep();
-            startTimeCount();
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.v(TAG, "onCreate");
+        initBroadcastReceiver();
+        startStep();
+        startTimeCount();
 
-            TimeCounter counter = new TimeCounter(100000, 1000);
-            counter.start();
+        TimeCounter counter = new TimeCounter(100000, 1000);
+        counter.start();
 
-            liteOrm = LiteOrm.newCascadeInstance(this, "acceleration.db");
-            liteOrm.setDebugged(false);
-            // gyroscopeOrm = LiteOrm.newCascadeInstance(this, "gyroscope.db");
-            // gyroscopeOrm.setDebugged(false);
+        liteOrm = LiteOrm.newCascadeInstance(this, "acceleration.db");
+        liteOrm.setDebugged(false);
+        // gyroscopeOrm = LiteOrm.newCascadeInstance(this, "gyroscope.db");
+        // gyroscopeOrm.setDebugged(false);
     }
 
     static int i = 0;
+
     class TimeCounter extends CountDownTimer {
 
         public TimeCounter(long millisInFuture, long countDownInterval) {
@@ -127,17 +130,19 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
             accelerationTemp.setZ(acceleration.getZ());
             liteOrm.insert(accelerationTemp);
 
-            deltaRotationVector = stepInGyroScope.deltaRotationVector;
-            Gyroscope gyroscope = new Gyroscope();
-            gyroscope.setAxisX(deltaRotationVector[0]);
-            gyroscope.setAxisY(deltaRotationVector[1]);
-            gyroscope.setAxisZ(deltaRotationVector[2]);
-            gyroscope.setAxisA(deltaRotationVector[3]);
-            liteOrm.insert(gyroscope);
+            deltaRotationVector = stepInAcceleration.deltaRotationVector;
+            gravity = stepInAcceleration.gravity;
+            // Gyroscope gyroscope = new Gyroscope();
+            // gyroscope.setAxisX(deltaRotationVector[0]);
+            // gyroscope.setAxisY(deltaRotationVector[1]);
+            // gyroscope.setAxisZ(deltaRotationVector[2]);
+            // gyroscope.setAxisA(deltaRotationVector[3]);
+            // liteOrm.insert(gyroscope);
+            //
+            // StepCounter stepCounter = new StepCounter();
+            // stepCounter.setStep(StepMode.CURRENT_SETP);
+            // liteOrm.insert(stepCounter);
 
-            StepCounter stepCounter = new StepCounter();
-            stepCounter.setStep(StepMode.CURRENT_SETP);
-            liteOrm.insert(stepCounter);
             // acceleration = new Acceleration();
             // acceleration.setX(x);
             // acceleration.setY(y);
@@ -215,23 +220,21 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     private void startStep() {
 
         boolean isAvailable;
-        stepInPedometer = new StepInPedometer(this, this);
-        isAvailable = stepInPedometer.getStep();
-        if (isAvailable) {
-            Log.v(TAG, "Step Counter can execute!");
-        }
-        // Log.d("StepService", "isAvailable:" + isAvailable);
-        // if (!isAvailable) {
+        // stepInPedometer = new StepInPedometer(this, this);
+        // isAvailable = stepInPedometer.getStep();
+        // if (isAvailable) {
+        //     Log.v(TAG, "Step Counter can execute!");
+        // }
         stepInAcceleration = new StepInAcceleration(this, this);
         isAvailable = stepInAcceleration.getStep();
         if (isAvailable) {
             Log.v(TAG, "acceleration can execute!");
         }
-        stepInGyroScope = new StepInGyroScope(this, this);
-        isAvailable = stepInGyroScope.getStep();
-        if (isAvailable) {
-            Log.v(TAG, "gyroscope can execute!");
-        }
+        // stepInGyroScope = new StepInGyroScope(this, this);
+        // isAvailable = stepInGyroScope.getStep();
+        // if (isAvailable) {
+        //     Log.v(TAG, "gyroscope can execute!");
+        // }
         // }
     }
 

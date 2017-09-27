@@ -18,6 +18,7 @@ import android.widget.TextView;
 import com.base.basepedo.R;
 import com.base.basepedo.config.Constant;
 import com.base.basepedo.pojo.Acceleration;
+import com.base.basepedo.pojo.Gravity;
 import com.base.basepedo.service.StepService;
 
 import java.util.List;
@@ -33,10 +34,15 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
     private TextView tv_acceleration_x;
     private TextView tv_acceleration_y;
     private TextView tv_acceleration_z;
+
     private TextView tv_gyroscope_x;
     private TextView tv_gyroscope_y;
     private TextView tv_gyroscope_z;
     private TextView tv_gyroscope_a;
+
+    private TextView tv_gravity_x;
+    private TextView tv_gravity_y;
+    private TextView tv_gravity_z;
 
 
     private Handler delayHandler;
@@ -70,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                 if (bundle != null) {
                     Acceleration acc = (Acceleration) bundle.getSerializable("acceleration");
                     float[] deltaRotationVector = (float[]) bundle.getSerializable("gyroscope");
+                    Gravity gravity = (Gravity) bundle.getSerializable("gravity");
                     tv_acceleration_x.setText(String.valueOf(acc.getX()));
                     tv_acceleration_y.setText(String.valueOf(acc.getY()));
                     tv_acceleration_z.setText(String.valueOf(acc.getZ()));
@@ -78,6 +85,10 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
                     tv_gyroscope_y.setText(String.valueOf(deltaRotationVector[1]));
                     tv_gyroscope_z.setText(String.valueOf(deltaRotationVector[2]));
                     tv_gyroscope_a.setText(String.valueOf(deltaRotationVector[3]));
+
+                    tv_gravity_x.setText(String.valueOf(gravity.getX()));
+                    tv_gravity_y.setText(String.valueOf(gravity.getY()));
+                    tv_gravity_z.setText(String.valueOf(gravity.getZ()));
                 }
                 delayHandler.sendEmptyMessageDelayed(Constant.REQUEST_SERVER, TIME_INTERVAL);
                 break;
@@ -128,10 +139,15 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         tv_acceleration_x = (TextView) findViewById(R.id.tv_acceleration_x);
         tv_acceleration_y = (TextView) findViewById(R.id.tv_acceleration_y);
         tv_acceleration_z = (TextView) findViewById(R.id.tv_acceleration_z);
+
         tv_gyroscope_x = (TextView) findViewById(R.id.tv_gyroscope_x);
         tv_gyroscope_y = (TextView) findViewById(R.id.tv_gyroscope_y);
         tv_gyroscope_z = (TextView) findViewById(R.id.tv_gyroscope_z);
         tv_gyroscope_a = (TextView) findViewById(R.id.tv_gyroscope_a);
+
+        tv_gravity_x = (TextView) findViewById(R.id.tv_gravity_x);
+        tv_gravity_y = (TextView) findViewById(R.id.tv_gravity_y);
+        tv_gravity_z = (TextView) findViewById(R.id.tv_gravity_z);
     }
 
     @Override

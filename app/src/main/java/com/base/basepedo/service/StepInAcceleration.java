@@ -4,17 +4,16 @@ import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
 import com.base.basepedo.base.StepMode;
 import com.base.basepedo.callback.StepCallBack;
-import com.base.basepedo.config.Constant;
 import com.base.basepedo.pojo.Acceleration;
+import com.base.basepedo.pojo.Gravity;
 import com.base.basepedo.utils.CountDownTimer;
 import com.litesuits.orm.LiteOrm;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -25,6 +24,7 @@ import java.util.TimerTask;
  */
 public class StepInAcceleration extends StepMode {
     private final String TAG = "StepInAcceleration";
+    private Context context;
     //存放三轴数据
     final int valueNum = 5;
     //用于存放计算阈值的波峰波谷差值
@@ -73,21 +73,17 @@ public class StepInAcceleration extends StepMode {
     // 倒计时3.5秒，3.5秒内不会显示计步，用于屏蔽细微波动
     private long duration = 3500;
     private TimeCount time;
-
     private LiteOrm liteOrm;
-    private float x;
-    private float y;
-    private float z;
-    public Acceleration acceleration = null;
-    public static List<Acceleration> accelerationList = new ArrayList<>();
 
     public StepInAcceleration(Context context, StepCallBack stepCallBack) {
         super(context, stepCallBack);
+        this.context = context;
         liteOrm = LiteOrm.newCascadeInstance(context, "acceleration.db");
         liteOrm.setDebugged(false);
         TimeCounter counter = new TimeCounter(10000, 1000);
         counter.start();
         acceleration = new Acceleration();
+        gravity = new Gravity();
     }
 
     @Override
@@ -103,63 +99,167 @@ public class StepInAcceleration extends StepMode {
         // sensorManager.unregisterListener(stepDetector);
         isAvailable = sensorManager.registerListener(this, sensor,
                 SensorManager.SENSOR_DELAY_UI);
-
         if (isAvailable) {
             Log.v(TAG, "加速度传感器可以使用");
         } else {
             Log.v(TAG, "加速度传感器无法使用");
         }
+
+        Sensor detectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+        isAvailable = sensorManager.registerListener(this, detectorSensor, SensorManager.SENSOR_DELAY_UI);
+        if (isAvailable) {
+            Log.v(TAG, "STEP_DETECTOR传感器可以使用");
+        } else {
+            Log.v(TAG, "STEP_DETECTOR传感器无法使用");
+        }
+
+        Sensor gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        isAvailable = sensorManager.registerListener(this, gravitySensor, SensorManager.SENSOR_DELAY_UI);
+        if (isAvailable) {
+            Log.v(TAG, "GRAVITY传感器可以使用");
+        } else {
+            Log.v(TAG, "GRAVITY传感器无法使用");
+        }
+
+        Sensor gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        isAvailable = sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_UI);
+        if (isAvailable) {
+            Log.v(TAG, "GYROSCOPE传感器可以使用");
+        } else {
+            Log.v(TAG, "GYROSCOPE传感器无法使用");
+        }
+
+        // Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        // if (detectorSensor != null) {
+        // } else if (countSensor != null) {
+        //     sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
+        //     isAvailable = true;
+        //TODO 注册所有传感器。
+
     }
 
     public void onAccuracyChanged(Sensor arg0, int arg1) {
     }
 
+    public Acceleration acceleration = null;
+    public Gravity gravity = null;
+    public static List<Acceleration> accelerationList = new ArrayList<>();
 
-    private double gravity[] = new double[3];
+    private double gravitys[] = new double[3];
     private double linear_acceleration[] = new double[3];
+
+    private static final float NS2S = 1.0f / 1000000000.0f;
+    public final float[] deltaRotationVector = new float[4];
+    private float timestamp;
 
     public void onSensorChanged(SensorEvent event) {
 
         Sensor sensor = event.sensor;
         synchronized (this) {
-            if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                calc_step(event);
-                // Log.d("StepInAcceleration", "event.values[0]:" + event.values[0]);
-                // Log.d("StepInAcceleration", "event.values[1]:" + event.values[1]);
-                // Log.d("StepInAcceleration", "event.values[2]:" + event.values[2]);
+            switch (sensor.getType()) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    calc_step(event);
+                    // Log.d("StepInAcceleration", "event.values[0]:" + event.values[0]);
+                    // Log.d("StepInAcceleration", "event.values[1]:" + event.values[1]);
+                    // Log.d("StepInAcceleration", "event.values[2]:" + event.values[2]);
 
-                float alpha = 0.8f;
+                    float alpha = 0.8f;
 
-                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
-                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
-                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+                    gravitys[0] = alpha * gravitys[0] + (1 - alpha) * event.values[0];
+                    gravitys[1] = alpha * gravitys[1] + (1 - alpha) * event.values[1];
+                    gravitys[2] = alpha * gravitys[2] + (1 - alpha) * event.values[2];
 
-                linear_acceleration[0] = event.values[0] - gravity[0];
-                linear_acceleration[1] = event.values[1] - gravity[1];
-                linear_acceleration[2] = event.values[2] - gravity[2];
+                    linear_acceleration[0] = event.values[0] - gravitys[0];
+                    linear_acceleration[1] = event.values[1] - gravitys[1];
+                    linear_acceleration[2] = event.values[2] - gravitys[2];
 
-                x = event.values[0];
-                y = event.values[1];
-                z = event.values[2];
+                    acceleration = new Acceleration();
+                    acceleration.setX((float) linear_acceleration[0]);
+                    acceleration.setY((float) linear_acceleration[1]);
+                    acceleration.setZ((float) linear_acceleration[2]);
+                    accelerationList.add(acceleration);
+                    // liteOrm.insert(acceleration);
+                    break;
+                case Sensor.TYPE_GRAVITY:
+                    gravitys[0] = event.values[0];
+                    gravitys[1] = event.values[1];
+                    gravitys[2] = event.values[2];
 
-                acceleration.setX((float) linear_acceleration[0]);
-                acceleration.setY((float) linear_acceleration[1]);
-                acceleration.setZ((float) linear_acceleration[2]);
-                accelerationList.add(acceleration);
-                // liteOrm.insert(acceleration);
+                    gravity.setX(event.values[0]);
+                    gravity.setY(event.values[1]);
+                    gravity.setZ(event.values[2]);
+                    break;
+                case Sensor.TYPE_STEP_DETECTOR:
+                    synchronized (this) {
+                        save();
+                    }
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    // This time step's delta rotation to be multiplied by the current rotation
+                    // after computing it from the gyro sample data.
+                    if (timestamp != 0) {
+                        final float dT = (event.timestamp - timestamp) * NS2S;
+                        // Axis of the rotation sample, not normalized yet.
+                        float axisX = event.values[0];
+                        float axisY = event.values[1];
+                        float axisZ = event.values[2];
+
+                        // Calculate the angular speed of the sample
+                        float omegaMagnitude = (float) Math.sqrt(axisX*axisX + axisY*axisY + axisZ*axisZ);
+
+                        // Normalize the rotation vector if it's big enough to get the axis
+                        // TODO
+                        // if (omegaMagnitude > EPSILON) {
+                        //     axisX /= omegaMagnitude;
+                        //     axisY /= omegaMagnitude;
+                        //     axisZ /= omegaMagnitude;
+                        // }
+
+                        float thetaOverTwo = omegaMagnitude * dT / 2.0f;
+                        float sinThetaOverTwo = (float) Math.sin(thetaOverTwo);
+                        float cosThetaOverTwo = (float) Math.cos(thetaOverTwo);
+                        deltaRotationVector[0] = sinThetaOverTwo * axisX;
+                        deltaRotationVector[1] = sinThetaOverTwo * axisY;
+                        deltaRotationVector[2] = sinThetaOverTwo * axisZ;
+                        deltaRotationVector[3] = cosThetaOverTwo;
+                    }
+                    timestamp = event.timestamp;
+                    float[] deltaRotationMatrix = new float[9];
+                    SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaRotationVector);
+                    // User code should concatenate the delta rotation we computed with the current rotation
+                    // in order to get the updated rotation.
+                    // rotationCurrent = rotationCurrent * deltaRotationMatrix;
+                    break;
             }
         }
     }
 
 
-    public static class MyHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what == Constant.MSG_SYNCHRONIZED) {
-                // accelerationList
-            }
-            super.handleMessage(msg);
+    public void save() {
+        StringBuilder sb = new StringBuilder();
+        for (Acceleration item : accelerationList) {
+            sb.append(item.toString());
         }
+
+
+        File file = context.getFilesDir();
+        Log.d("StepInAcceleration", file.getAbsolutePath());
+        // FileOutputStream fos = null;
+        // try {
+        //     fos = new FileOutputStream(file);
+        //     fos.write(sb.toString().getBytes());
+        // } catch (FileNotFoundException e) {
+        //     e.printStackTrace();
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // } finally {
+        //     accelerationList.clear();
+        //     try {
+        //         fos.close();
+        //     } catch (IOException e) {
+        //         e.printStackTrace();
+        //     }
+        // }
     }
 
     class TimeCounter extends CountDownTimer {
@@ -250,6 +350,7 @@ public class StepInAcceleration extends StepMode {
      * 记录波谷值
      * 1.观察波形图，可以发现在出现步子的地方，波谷的下一个就是波峰，有比较明显的特征以及差值
      * 2.所以要记录每次的波谷值，为了和下次的波峰做对比
+     *
      * @return true is peak,false is valley
      */
     public boolean DetectorPeak(float newValue, float oldValue) {
@@ -263,7 +364,7 @@ public class StepInAcceleration extends StepMode {
             isDirectionUp = false;
         }
 
-//        Log.v(TAG, "oldValue:" + oldValue);
+        //        Log.v(TAG, "oldValue:" + oldValue);
         if (!isDirectionUp && lastStatus
                 && (continueUpFormerCount >= 2 && (oldValue >= minValue && oldValue < maxValue))) {
             peakOfWave = oldValue;
@@ -311,19 +412,19 @@ public class StepInAcceleration extends StepMode {
         }
         ave = ave / valueNum;
         if (ave >= 8) {
-//            Log.v(TAG, "超过8");
+            //            Log.v(TAG, "超过8");
             ave = (float) 4.3;
         } else if (ave >= 7 && ave < 8) {
-//            Log.v(TAG, "7-8");
+            //            Log.v(TAG, "7-8");
             ave = (float) 3.3;
         } else if (ave >= 4 && ave < 7) {
-//            Log.v(TAG, "4-7");
+            //            Log.v(TAG, "4-7");
             ave = (float) 2.3;
         } else if (ave >= 3 && ave < 4) {
-//            Log.v(TAG, "3-4");
+            //            Log.v(TAG, "3-4");
             ave = (float) 2.0;
         } else {
-//            Log.v(TAG, "else");
+            //            Log.v(TAG, "else");
             ave = (float) 1.7;
         }
         return ave;
