@@ -24,16 +24,8 @@ public class Gravity implements Serializable{
     private float y;
     @Column("z")
     private float z;
-
-    @Override
-    public String toString() {
-        return "Gravity{" +
-                "id=" + id +
-                ", x=" + x +
-                ", y=" + y +
-                ", z=" + z +
-                '}';
-    }
+    @Column("average")
+    private float average;
 
     public int getId() {
         return id;
@@ -49,6 +41,25 @@ public class Gravity implements Serializable{
 
     public void setX(float x) {
         this.x = x;
+    }
+
+    @Override
+    public String toString() {
+        return "Gravity{" +
+                "id=" + id +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                ", average=" + average +
+                '}';
+    }
+
+    public float getAverage() {
+        return average;
+    }
+
+    public void setAverage(float average) {
+        this.average = average;
     }
 
     public float getY() {

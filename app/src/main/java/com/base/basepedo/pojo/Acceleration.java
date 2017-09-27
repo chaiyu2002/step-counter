@@ -26,6 +26,27 @@ public class Acceleration implements Serializable{
     private float y;
     @Column("z")
     private float z;
+    @Column("average")
+    private float average;
+
+    @Override
+    public String toString() {
+        return "Acceleration{" +
+                "id=" + id +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                ", average=" + average +
+                '}';
+    }
+
+    public float getAverage() {
+        return average;
+    }
+
+    public void setAverage(float average) {
+        this.average = average;
+    }
 
     public int getId() {
         return id;
@@ -59,13 +80,4 @@ public class Acceleration implements Serializable{
         this.z = z;
     }
 
-    @Override
-    public String toString() {
-        return "Acceleration{" +
-                "id=" + id +
-                ", x='" + x + '\'' +
-                ", y='" + y + '\'' +
-                ", z='" + z + '\'' +
-                '}';
-    }
 }
