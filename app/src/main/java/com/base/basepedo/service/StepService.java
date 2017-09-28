@@ -54,7 +54,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     //当天的日期
     private String CURRENTDATE = "";
     private static StepInAcceleration stepInAcceleration;
-    // private StepInPedometer stepInPedometer;
     private static Acceleration acceleration;
     private static Gravity gravity;
     private static float[] deltaRotationVector;
@@ -77,7 +76,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
                         bundle.putSerializable("gyroscope", deltaRotationVector);
                         bundle.putSerializable("gravity", gravity);
                         replyMsg.setData(bundle);
-                        // replyMsg.obj = acceleration;
                         messenger.send(replyMsg);
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -95,7 +93,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
 
     private LiteOrm liteOrm;
 
-    // private LiteOrm gyroscopeOrm;
     @Override
     public void onCreate() {
         super.onCreate();
