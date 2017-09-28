@@ -54,7 +54,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     //当天的日期
     private String CURRENTDATE = "";
     private static StepInAcceleration stepInAcceleration;
-    // private StepInGyroScope stepInGyroScope;
     // private StepInPedometer stepInPedometer;
     private static Acceleration acceleration;
     private static Gravity gravity;
@@ -233,12 +232,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
         if (isAvailable) {
             Log.v(TAG, "acceleration can execute!");
         }
-        // stepInGyroScope = new StepInGyroScope(this, this);
-        // isAvailable = stepInGyroScope.getStep();
-        // if (isAvailable) {
-        //     Log.v(TAG, "gyroscope can execute!");
-        // }
-        // }
+
     }
 
     private void startTimeCount() {
@@ -361,7 +355,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     public void onDestroy() {
         //取消前台进程
         stopForeground(true);
-        DbUtils.closeDb();
+        // DbUtils.closeDb();
         unregisterReceiver(mBatInfoReceiver);
         Intent intent = new Intent(this, StepService.class);
         startService(intent);

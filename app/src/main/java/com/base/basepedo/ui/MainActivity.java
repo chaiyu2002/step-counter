@@ -20,10 +20,13 @@ import android.os.RemoteException;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.base.basepedo.R;
+import com.base.basepedo.base.StepMode;
 import com.base.basepedo.config.Constant;
 import com.base.basepedo.pojo.Acceleration;
 import com.base.basepedo.pojo.Gravity;
@@ -31,7 +34,7 @@ import com.base.basepedo.service.StepService;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements Handler.Callback {
+public class MainActivity extends AppCompatActivity implements Handler.Callback, View.OnClickListener {
     private final String TAG = MainActivity.class.getSimpleName();
     //循环取当前时刻的步数中间的间隔时间
     private long TIME_INTERVAL = 500;
@@ -51,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
     private TextView tv_gravity_x;
     private TextView tv_gravity_y;
     private TextView tv_gravity_z;
+
+    private Button bt_reset;
 
 
     private Handler delayHandler;
@@ -124,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         init();
-        Log.d("MainActivity", "...");
+        // Log.d("MainActivity", "...");
         startServiceForStrategy();
         // checkExternalPermission();
     }
@@ -141,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
             if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 // storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "myPhoto");
             } else {
+                Log.d("MainActivity", "no request");
                 Log.d("MainActivity", "no request");
                 requestPermission(this);
             }
@@ -214,6 +220,9 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
         tv_gravity_x = (TextView) findViewById(R.id.tv_gravity_x);
         tv_gravity_y = (TextView) findViewById(R.id.tv_gravity_y);
         tv_gravity_z = (TextView) findViewById(R.id.tv_gravity_z);
+
+        bt_reset = (Button) findViewById(R.id.bt_reset);
+        bt_reset.setOnClickListener(this);
     }
 
     @Override
@@ -280,5 +289,14 @@ public class MainActivity extends AppCompatActivity implements Handler.Callback 
     protected void onDestroy() {
         super.onDestroy();
         unbindService(conn);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.bt_reset:
+                StepMode.CURRENT_SETP = 0;
+                break;
+        }
     }
 }
