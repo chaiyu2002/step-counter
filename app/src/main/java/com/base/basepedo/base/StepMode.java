@@ -16,6 +16,7 @@ public abstract class StepMode implements SensorEventListener {
     public SensorManager sensorManager;
     public static int CURRENT_SETP = 0;
     public boolean isAvailable = false;
+    public boolean isGyroscopeAvailable = false;
 
     public StepMode(Context context, StepCallBack stepCallBack) {
         this.context = context;

@@ -54,8 +54,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     //当天的日期
     private String CURRENTDATE = "";
     private static StepInAcceleration stepInAcceleration;
-    // private StepInGyroScope stepInGyroScope;
-    // private StepInPedometer stepInPedometer;
     private static Acceleration acceleration;
     private static Gravity gravity;
     private static float[] deltaRotationVector;
@@ -78,7 +76,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
                         bundle.putSerializable("gyroscope", deltaRotationVector);
                         bundle.putSerializable("gravity", gravity);
                         replyMsg.setData(bundle);
-                        // replyMsg.obj = acceleration;
                         messenger.send(replyMsg);
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -96,7 +93,6 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
 
     private LiteOrm liteOrm;
 
-    // private LiteOrm gyroscopeOrm;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -233,12 +229,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
         if (isAvailable) {
             Log.v(TAG, "acceleration can execute!");
         }
-        // stepInGyroScope = new StepInGyroScope(this, this);
-        // isAvailable = stepInGyroScope.getStep();
-        // if (isAvailable) {
-        //     Log.v(TAG, "gyroscope can execute!");
-        // }
-        // }
+
     }
 
     private void startTimeCount() {
@@ -361,7 +352,7 @@ public class StepService extends Service implements /*SensorEventListener,*/ Ste
     public void onDestroy() {
         //取消前台进程
         stopForeground(true);
-        DbUtils.closeDb();
+        // DbUtils.closeDb();
         unregisterReceiver(mBatInfoReceiver);
         Intent intent = new Intent(this, StepService.class);
         startService(intent);

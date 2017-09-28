@@ -45,13 +45,12 @@ public class Gravity implements Serializable{
 
     @Override
     public String toString() {
-        return "Gravity{" +
+        return "Gravity" +
                 "id=" + id +
                 ", x=" + x +
                 ", y=" + y +
                 ", z=" + z +
-                ", average=" + average +
-                '}';
+                ", average=" + average;
     }
 
     public float getAverage() {

@@ -17,7 +17,9 @@ import com.litesuits.orm.LiteOrm;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -56,9 +58,9 @@ public class StepInAcceleration extends StepMode {
     //上次传感器的值
     float gravityOld = 0;
     //动态阈值需要动态的数据，这个值用于这些动态数据的阈值
-    final float initialValue = (float) 1.7;
+    final float initialValue = (float) 4.0;
     //初始阈值
-    float ThreadValue = (float) 2.0;
+    float thresholdValue = (float) 2.0;
 
     //初始范围
     float minValue = 11f;
@@ -74,7 +76,7 @@ public class StepInAcceleration extends StepMode {
     public static float average = 0;
     private Timer timer;
     // 倒计时3.5秒，3.5秒内不会显示计步，用于屏蔽细微波动
-    private long duration = 3500;
+    private long duration = 2000;
     private TimeCount time;
     private LiteOrm liteOrm;
 
@@ -89,8 +91,6 @@ public class StepInAcceleration extends StepMode {
         this.context = context;
         liteOrm = LiteOrm.newCascadeInstance(context, "acceleration.db");
         liteOrm.setDebugged(false);
-        TimeCounter counter = new TimeCounter(100000, 250);
-        counter.start();
         acceleration = new Acceleration();
         gravity = new Gravity();
         gyroscope = new Gyroscope();
@@ -141,8 +141,10 @@ public class StepInAcceleration extends StepMode {
         isAvailable = sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_UI);
         if (isAvailable) {
             Log.v(TAG, "GYROSCOPE传感器可以使用");
+            isGyroscopeAvailable = true;
         } else {
             Log.v(TAG, "GYROSCOPE传感器无法使用");
+            isGyroscopeAvailable = false;
         }
 
         // Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
@@ -199,6 +201,7 @@ public class StepInAcceleration extends StepMode {
                     acceleration.setY((float) linear_acceleration[1]);
                     acceleration.setZ((float) linear_acceleration[2]);
                     acceleration.setAverage(average);
+                    acceleration.setTimestamp(event.timestamp);
                     accelerationList.add(acceleration);
                     // liteOrm.insert(acceleration);
                     break;
@@ -214,7 +217,7 @@ public class StepInAcceleration extends StepMode {
                 case Sensor.TYPE_STEP_DETECTOR:
                     step++;
                     // if (i % 5 == 0) {
-                    saveAcceleration();
+                    saveAcceleration(event.timestamp, step);
                     // saveGyroscope();
                     // }
                     break;
@@ -251,6 +254,7 @@ public class StepInAcceleration extends StepMode {
                         gyroscope.setAxisY(deltaRotationVector[1]);
                         gyroscope.setAxisZ(deltaRotationVector[2]);
                         gyroscope.setAverage(deltaRotationVector[3]);
+                        gyroscope.setTimestamp(event.timestamp);
                         gyroscopeList.add(gyroscope);
                     }
                     timestamp = event.timestamp;
@@ -264,7 +268,7 @@ public class StepInAcceleration extends StepMode {
         }
     }
 
-    private StringBuilder gyroscopeStr = new StringBuilder();
+    // private StringBuilder gyroscopeStr = new StringBuilder();
 
     // private void saveGyroscope() {
     //     gyroscopeStr.append("---------------" + step + "---------------\n");
@@ -276,18 +280,28 @@ public class StepInAcceleration extends StepMode {
     // }
 
     private StringBuilder accelerationStr = new StringBuilder();
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日HH点mm分ss秒SSS毫秒");
 
-
-    public void saveAcceleration() {
+    public void saveAcceleration(long timestamp, int step) {
         // accelerationStr = new StringBuilder();
-        accelerationStr.append("---------------" + step + "---------------\n");
+        String detectorTime = sdf.format((new Date()).getTime()
+                + (timestamp - System.nanoTime()) / 1000000L);
+        accelerationStr.append(detectorTime + ": StepDetector  第" + step + "步 \n");
 
         for (int i = 0; i < accelerationList.size(); i++) {
             if (i < accelerationList.size() && i < gyroscopeList.size()) {
-                accelerationStr.append("————>");
-                accelerationStr.append(accelerationList.get(i).toString());
-                accelerationStr.append(gyroscopeList.get(i).toString());
-                accelerationStr.append("\n");
+
+                String accelerationTime = sdf.format((new Date()).getTime()
+                        + (accelerationList.get(i).getTimestamp() - System.nanoTime()) / 1000000L);
+                String gyroscopeTime = sdf.format((new Date()).getTime()
+                        + (gyroscopeList.get(i).getTimestamp() - System.nanoTime()) / 1000000L);
+
+
+                accelerationStr.append(accelerationTime + ": ");
+                accelerationStr.append(accelerationList.get(i).toString() + "\n");
+                accelerationStr.append(gyroscopeTime + ": ");
+                accelerationStr.append(gyroscopeList.get(i).toString() + "\n");
+                accelerationStr.append("---------------\n");
             }
         }
         // for (Acceleration item : accelerationList) {
@@ -297,26 +311,7 @@ public class StepInAcceleration extends StepMode {
 
         FileUtil.writeToFileDir(accelerationFile, accelerationStr.toString());
         accelerationList.clear();
-    }
-
-    class TimeCounter extends CountDownTimer {
-
-        public TimeCounter(long millisInFuture, long countDownInterval) {
-            super(millisInFuture, countDownInterval);
-        }
-
-        @Override
-        public void onTick(long millisUntilFinished) {
-            Log.d("TimeCounter", "millisUntilFinished:" + millisUntilFinished);
-            // acceleration = new Acceleration();
-            // liteOrm.insert(acceleration);
-            // saveAcceleration();
-        }
-
-        @Override
-        public void onFinish() {
-
-        }
+        gyroscopeList.clear();
     }
 
     synchronized private float calc_step(SensorEvent event) {
@@ -340,17 +335,26 @@ public class StepInAcceleration extends StepMode {
                 timeOfLastPeak = timeOfThisPeak;
                 timeOfNow = System.currentTimeMillis();
 
-                // TODO
-                if (timeOfNow - timeOfLastPeak >= 200
-                        && (peakOfWave - valleyOfWave >= ThreadValue) && (timeOfNow - timeOfLastPeak) <= 2000) {
+                // TODO 每步的事件间隔。200 这个值需要调
+                boolean a = timeOfNow - timeOfLastPeak >= 250;
+                boolean b = (timeOfNow - timeOfLastPeak) <= 3000;
+                boolean c = peakOfWave - valleyOfWave >= thresholdValue;
+                Log.d("StepInAcceleration", "a:" + a);
+                Log.d("StepInAcceleration", "b:" + b);
+                Log.d("StepInAcceleration", "c:" + c);
+                if (a && b && c) {
+
                     timeOfThisPeak = timeOfNow;
+                    Log.d("StepInAcceleration", "thresholdValue:" + thresholdValue);
+                    Log.d("StepInAcceleration", "preStep");
+                    Log.d("StepInAcceleration", "values:" + values);
                     //更新界面的处理，不涉及到算法
                     preStep();
                 }
                 if (timeOfNow - timeOfLastPeak >= 200
                         && (peakOfWave - valleyOfWave >= initialValue)) {
                     timeOfThisPeak = timeOfNow;
-                    ThreadValue = Peak_Valley_Thread(peakOfWave - valleyOfWave);
+                    thresholdValue = calcThresholdValue(peakOfWave - valleyOfWave);
                 }
             }
         }
@@ -419,21 +423,19 @@ public class StepInAcceleration extends StepMode {
      * 2.记录4个值，存入tempValue[]数组中
      * 3.在将数组传入函数averageValue中计算阈值
      * */
-    public float Peak_Valley_Thread(float value) {
-        float tempThread = ThreadValue;
+    public float calcThresholdValue(float value) {
+        float tempThread = thresholdValue;
         if (tempCount < valueNum) {
             tempValue[tempCount] = value;
-            // tempCount 不重置吗？
             tempCount++;
         } else {
-            tempThread = averageValue(tempValue, valueNum);
+            tempThread = calcAverageThresholdValue(tempValue, valueNum);
             for (int i = 1; i < valueNum; i++) {
                 tempValue[i - 1] = tempValue[i];
             }
             tempValue[valueNum - 1] = value;
         }
         return tempThread;
-
     }
 
     /*
@@ -441,7 +443,8 @@ public class StepInAcceleration extends StepMode {
      * 1.计算数组的均值
      * 2.通过均值将阈值梯度化在一个范围里
      * */
-    public float averageValue(float value[], int n) {
+    public float calcAverageThresholdValue(float value[], int n) {
+
         float ave = 0;
         for (int i = 0; i < n; i++) {
             ave += value[i];
@@ -464,6 +467,24 @@ public class StepInAcceleration extends StepMode {
             ave = (float) 1.7;
         }
         return ave;
+
+        // float ave = 0;
+        // for (int i = 0; i < n; i++) {
+        //     ave += value[i];
+        // }
+        // ave = ave / valueNum;
+        // if (ave >= 12) {
+        //     ave = (float) 12.0;
+        // } else if (ave >= 10 && ave < 12) {
+        //     ave = (float) 10.0;
+        // } else if (ave >= 8 && ave < 10) {
+        //     ave = (float) 8.0;
+        // } else if (ave >= 6 && ave < 8) {
+        //     ave = (float) 6.0;
+        // } else {
+        //     ave = (float) 4;
+        // }
+        // return ave;
     }
 
     class TimeCount extends CountDownTimer {
