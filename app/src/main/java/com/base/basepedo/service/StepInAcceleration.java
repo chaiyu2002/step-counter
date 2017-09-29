@@ -58,7 +58,7 @@ public class StepInAcceleration extends StepMode {
     //动态阈值需要动态的数据，这个值用于这些动态数据的阈值
     final float initialValue = (float) 5.0;
     //初始阈值
-    float thresholdValue = (float) 5.0;
+    float thresholdValue = (float) 10.0;
 
     //初始范围
     float minValue = 11f;
@@ -337,6 +337,13 @@ public class StepInAcceleration extends StepMode {
                 boolean a = timeOfNow - timeOfLastPeak >= 250;
                 boolean b = (timeOfNow - timeOfLastPeak) <= 2000;
                 boolean c = peakOfWave - valleyOfWave >= thresholdValue;
+                Log.d("StepInAcceleration", "timeOfNow: " + timeOfNow);
+                Log.d("StepInAcceleration", "timeOfLastPeak: " + timeOfLastPeak);
+                Log.d("StepInAcceleration", "timeOfNow - timeOfLastPeak: " + (timeOfNow - timeOfLastPeak));
+                Log.d("StepInAcceleration", "peakOfWave: " + peakOfWave);
+                Log.d("StepInAcceleration", "valleyOfWave: " + valleyOfWave);
+                Log.d("StepInAcceleration", "thresholdValue: " + thresholdValue);
+                Log.d("StepInAcceleration", "peakOfWave - valleyOfWave: " + (peakOfWave - valleyOfWave));
                 Log.d("StepInAcceleration", "a:" + a);
                 Log.d("StepInAcceleration", "b:" + b);
                 Log.d("StepInAcceleration", "c:" + c);
@@ -352,7 +359,7 @@ public class StepInAcceleration extends StepMode {
                 if (timeOfNow - timeOfLastPeak >= 200
                         && (peakOfWave - valleyOfWave >= initialValue)) {
                     timeOfThisPeak = timeOfNow;
-                    thresholdValue = calcThresholdValue(peakOfWave - valleyOfWave);
+//                    thresholdValue = calcThresholdValue(peakOfWave - valleyOfWave);
                 }
             }
         }
@@ -397,6 +404,9 @@ public class StepInAcceleration extends StepMode {
      */
     public boolean detectorPeak(float newValue, float oldValue) {
         lastStatus = isDirectionUp;
+        Log.d(TAG, "detectorPeak lastStatus: " + lastStatus);
+        Log.d(TAG, "detectorPeak newValue: " + newValue);
+        Log.d(TAG, "detectorPeak oldValue: " + oldValue);
         if (newValue >= oldValue) {
             isDirectionUp = true;
             continueUpCount++;
@@ -405,12 +415,14 @@ public class StepInAcceleration extends StepMode {
             continueUpCount = 0;
             isDirectionUp = false;
         }
+        Log.d(TAG, "detectorPeak isDirectionUp: " + isDirectionUp);
+//        Log.d(TAG, "detectorPeak continueUpFormerCount: " + continueUpFormerCount);
 
-        if (!isDirectionUp && lastStatus
-                && (continueUpFormerCount >= 2 && (oldValue >= minValue && oldValue < maxValue))) {
+        if (!isDirectionUp && lastStatus) {
             peakOfWave = oldValue;
             Log.d("StepInAcceleration", "peakOfWave:" + peakOfWave);
             return true;
+            //上一次是向下，本次是向上
         } else if (!lastStatus && isDirectionUp) {
             valleyOfWave = oldValue;
             Log.d("StepInAcceleration", "valleyOfWave:" + valleyOfWave);
