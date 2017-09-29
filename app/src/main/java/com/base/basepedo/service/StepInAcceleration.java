@@ -11,7 +11,6 @@ import com.base.basepedo.callback.StepCallBack;
 import com.base.basepedo.pojo.Acceleration;
 import com.base.basepedo.pojo.Gravity;
 import com.base.basepedo.pojo.Gyroscope;
-import com.base.basepedo.utils.CountDownTimer;
 import com.base.basepedo.utils.FileUtil;
 import com.litesuits.orm.LiteOrm;
 
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Created by base on 2016/8/17.
@@ -58,9 +56,9 @@ public class StepInAcceleration extends StepMode {
     //上次传感器的值
     float gravityOld = 0;
     //动态阈值需要动态的数据，这个值用于这些动态数据的阈值
-    final float initialValue = (float) 4.0;
+    final float initialValue = (float) 5.0;
     //初始阈值
-    float thresholdValue = (float) 2.0;
+    float thresholdValue = (float) 5.0;
 
     //初始范围
     float minValue = 11f;
@@ -77,7 +75,7 @@ public class StepInAcceleration extends StepMode {
     private Timer timer;
     // 倒计时3.5秒，3.5秒内不会显示计步，用于屏蔽细微波动
     private long duration = 2000;
-    private TimeCount time;
+    // private TimeCount time;
     private LiteOrm liteOrm;
 
     private int step = 0;
@@ -331,24 +329,24 @@ public class StepInAcceleration extends StepMode {
         if (gravityOld == 0) {
             gravityOld = values;
         } else {
-            if (DetectorPeak(values, gravityOld)) {
+            if (detectorPeak(values, gravityOld)) {
                 timeOfLastPeak = timeOfThisPeak;
                 timeOfNow = System.currentTimeMillis();
 
                 // TODO 每步的事件间隔。200 这个值需要调
                 boolean a = timeOfNow - timeOfLastPeak >= 250;
-                boolean b = (timeOfNow - timeOfLastPeak) <= 3000;
+                boolean b = (timeOfNow - timeOfLastPeak) <= 2000;
                 boolean c = peakOfWave - valleyOfWave >= thresholdValue;
                 Log.d("StepInAcceleration", "a:" + a);
                 Log.d("StepInAcceleration", "b:" + b);
                 Log.d("StepInAcceleration", "c:" + c);
-                if (a && b && c) {
 
+                if (a && b && c) {
                     timeOfThisPeak = timeOfNow;
                     Log.d("StepInAcceleration", "thresholdValue:" + thresholdValue);
-                    Log.d("StepInAcceleration", "preStep");
+                    // Log.d("StepInAcceleration", "preStep");
                     Log.d("StepInAcceleration", "values:" + values);
-                    //更新界面的处理，不涉及到算法
+                    // 更新界面的处理，不涉及到算法
                     preStep();
                 }
                 if (timeOfNow - timeOfLastPeak >= 200
@@ -362,20 +360,24 @@ public class StepInAcceleration extends StepMode {
     }
 
     private void preStep() {
-        if (CountTimeState == 0) {
-            // 开启计时器
-            time = new TimeCount(duration, 700);
-            time.start();
-            CountTimeState = 1;
-            Log.v(TAG, "开启计时器");
-        } else if (CountTimeState == 1) {
-            TEMP_STEP++;
-            Log.v(TAG, "计步中 TEMP_STEP:" + TEMP_STEP);
-        } else if (CountTimeState == 2) {
-            CURRENT_SETP++;
-            if (stepCallBack != null) {
-                stepCallBack.Step(CURRENT_SETP);
-            }
+        // if (CountTimeState == 0) {
+        //     // 开启计时器
+        //     time = new TimeCount(duration, 700);
+        //     time.start();
+        //     CountTimeState = 1;
+        //     Log.v(TAG, "开启计时器");
+        // } else if (CountTimeState == 1) {
+        //     TEMP_STEP++;
+        //     Log.v(TAG, "计步中 TEMP_STEP:" + TEMP_STEP);
+        // } else if (CountTimeState == 2) {
+        //     CURRENT_SETP++;
+        //     if (stepCallBack != null) {
+        //         stepCallBack.Step(CURRENT_SETP);
+        //     }
+        // }
+        CURRENT_SETP++;
+        if (stepCallBack != null) {
+            stepCallBack.Step(CURRENT_SETP);
         }
     }
 
@@ -393,7 +395,7 @@ public class StepInAcceleration extends StepMode {
      *
      * @return true is peak,false is valley
      */
-    public boolean DetectorPeak(float newValue, float oldValue) {
+    public boolean detectorPeak(float newValue, float oldValue) {
         lastStatus = isDirectionUp;
         if (newValue >= oldValue) {
             isDirectionUp = true;
@@ -404,13 +406,14 @@ public class StepInAcceleration extends StepMode {
             isDirectionUp = false;
         }
 
-        //        Log.v(TAG, "oldValue:" + oldValue);
         if (!isDirectionUp && lastStatus
                 && (continueUpFormerCount >= 2 && (oldValue >= minValue && oldValue < maxValue))) {
             peakOfWave = oldValue;
+            Log.d("StepInAcceleration", "peakOfWave:" + peakOfWave);
             return true;
         } else if (!lastStatus && isDirectionUp) {
             valleyOfWave = oldValue;
+            Log.d("StepInAcceleration", "valleyOfWave:" + valleyOfWave);
             return false;
         } else {
             return false;
@@ -450,22 +453,22 @@ public class StepInAcceleration extends StepMode {
             ave += value[i];
         }
         ave = ave / valueNum;
-        if (ave >= 8) {
-            //            Log.v(TAG, "超过8");
-            ave = (float) 4.3;
-        } else if (ave >= 7 && ave < 8) {
-            //            Log.v(TAG, "7-8");
-            ave = (float) 3.3;
-        } else if (ave >= 4 && ave < 7) {
-            //            Log.v(TAG, "4-7");
-            ave = (float) 2.3;
-        } else if (ave >= 3 && ave < 4) {
-            //            Log.v(TAG, "3-4");
-            ave = (float) 2.0;
-        } else {
-            //            Log.v(TAG, "else");
-            ave = (float) 1.7;
-        }
+        // if (ave >= 8) {
+        //     //            Log.v(TAG, "超过8");
+        //     ave = (float) 4.3;
+        // } else if (ave >= 7 && ave < 8) {
+        //     //            Log.v(TAG, "7-8");
+        //     ave = (float) 3.3;
+        // } else if (ave >= 4 && ave < 7) {
+        //     //            Log.v(TAG, "4-7");
+        //     ave = (float) 2.3;
+        // } else if (ave >= 3 && ave < 4) {
+        //     //            Log.v(TAG, "3-4");
+        //     ave = (float) 2.0;
+        // } else {
+        //     //            Log.v(TAG, "else");
+        //     ave = (float) 1.7;
+        // }
         return ave;
 
         // float ave = 0;
@@ -487,50 +490,50 @@ public class StepInAcceleration extends StepMode {
         // return ave;
     }
 
-    class TimeCount extends CountDownTimer {
-        public TimeCount(long millisInFuture, long countDownInterval) {
-            super(millisInFuture, countDownInterval);
-        }
-
-        @Override
-        public void onFinish() {
-            // 如果计时器正常结束，则开始计步
-            time.cancel();
-            CURRENT_SETP += TEMP_STEP;
-            lastStep = -1;
-            Log.v(TAG, "计时正常结束");
-
-            timer = new Timer(true);
-            TimerTask task = new TimerTask() {
-                public void run() {
-                    // 步数没有变化
-                    if (lastStep == CURRENT_SETP) {
-                        timer.cancel();
-                        CountTimeState = 0;
-                        lastStep = -1;
-                        TEMP_STEP = 0;
-                        Log.v(TAG, "停止计步：" + CURRENT_SETP);
-                    } else {
-                        lastStep = CURRENT_SETP;
-                    }
-                }
-            };
-            timer.schedule(task, 0, 2000);
-            CountTimeState = 2;
-        }
-
-        @Override
-        public void onTick(long millisUntilFinished) {
-            if (lastStep == TEMP_STEP) {
-                Log.v(TAG, "onTick 计时停止:" + TEMP_STEP);
-                time.cancel();
-                CountTimeState = 0;
-                lastStep = -1;
-                TEMP_STEP = 0;
-            } else {
-                lastStep = TEMP_STEP;
-            }
-        }
-    }
+    // class TimeCount extends CountDownTimer {
+    //     public TimeCount(long millisInFuture, long countDownInterval) {
+    //         super(millisInFuture, countDownInterval);
+    //     }
+    //
+    //     @Override
+    //     public void onFinish() {
+    //         // 如果计时器正常结束，则开始计步
+    //         time.cancel();
+    //         CURRENT_SETP += TEMP_STEP;
+    //         lastStep = -1;
+    //         Log.v(TAG, "计时正常结束");
+    //
+    //         timer = new Timer(true);
+    //         TimerTask task = new TimerTask() {
+    //             public void run() {
+    //                 // 步数没有变化
+    //                 if (lastStep == CURRENT_SETP) {
+    //                     timer.cancel();
+    //                     CountTimeState = 0;
+    //                     lastStep = -1;
+    //                     TEMP_STEP = 0;
+    //                     Log.v(TAG, "停止计步：" + CURRENT_SETP);
+    //                 } else {
+    //                     lastStep = CURRENT_SETP;
+    //                 }
+    //             }
+    //         };
+    //         timer.schedule(task, 0, 2000);
+    //         CountTimeState = 2;
+    //     }
+    //
+    //     @Override
+    //     public void onTick(long millisUntilFinished) {
+    //         if (lastStep == TEMP_STEP) {
+    //             Log.v(TAG, "onTick 计时停止:" + TEMP_STEP);
+    //             time.cancel();
+    //             CountTimeState = 0;
+    //             lastStep = -1;
+    //             TEMP_STEP = 0;
+    //         } else {
+    //             lastStep = TEMP_STEP;
+    //         }
+    //     }
+    // }
 
 }
